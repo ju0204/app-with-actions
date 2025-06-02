@@ -48,3 +48,21 @@ jobs:
         context: .
         push: true
         tags: ${{ secrets.DOCKERHUB_USERNAME }}/app-with-actions:latest
+  
+  cd:
+    needs: ci
+    runs-on: ubuntu-latest
+    steps:
+    - name: Execute deployment script
+      uses: appleboy/ssh-action@v1
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USERNAME }}
+        key: ${{ secrets.EC2_PRIVATE_KEY }}
+        script: |
+          sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/app-with-actions
+          sudo docker stop $(sudo docker ps -qa)
+          sudo docker rm $(sudo docker ps -qa)
+          sudo docker run -d -p 8080:8080 \
+          -e TZ=Asia/Seoul \
+          ${{ secrets.DOCKERHUB_USERNAME }}/app-with-actions
